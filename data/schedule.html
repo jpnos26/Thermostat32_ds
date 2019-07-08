@@ -1,0 +1,265 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta id="viewport" name="viewport" content="width=500, initial-scale=0.75, minimum-scale=0.75, maximum-scale=0.75, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Thermostat32</title>
+  <link href="images/Apple_ThermostatIcon_120x120.png" rel="apple-touch-icon" sizes="120x120" />
+  <link href="images/Apple_ThermostatIcon_152x152.png" rel="apple-touch-icon" sizes="152x152" />
+  <link href="images/Apple_ThermostatIcon_180x180.png" rel="apple-touch-icon" sizes="180x180" />
+
+  <link rel="stylesheet" href="css/jquery-ui.min.css">
+  <script src="javascript/jquery.js"></script>
+  <script src="javascript/jquery-ui.min.js"></script>
+  <script src="javascript/schedule.js"></script>
+  <script src="javascript/jquery.touch.js"></script>
+  
+ <script>
+
+  $(function() {
+	// turn this on for debugging on IOS devices
+
+	/* window.onerror = function( error ) {
+		alert( error );
+	}; */
+
+	if( navigator.platform.indexOf("iPad") != -1 ) {
+		$('meta[ name=viewport ]').attr( 'content', 'user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' );
+	}
+
+	var schedules = [ "heat"];
+	var schedulesName = ["Inverno"];
+	var days = [ "0","1", "2", "3", "4", "5", "6" ];
+	var oggi = [ "Domenica","Lunedi", "Martedi", "Mercoledi", "Giovedi", "Venerdi", "Sabato" ];
+	var scheduleSliders = [];
+	var tempname = ["noice","eco","normal","comfort"];
+    var tempval =[];
+	$.ajaxSetup( { cache: false } );
+
+	$.getJSON( "stato.json", function( data ) {
+	    var temptemp = data["temp"];
+        for( j = 0; j < temptemp.length; j++ ) {
+			    tempval[j] = temptemp[j];
+			    var testo = "#temp-"+String(j);
+			    $(testo).text(temptemp[j]);
+			    //console.log( tempval[j]);
+			}
+		});
+	  $.getJSON( "schedule.json", function( data ) {
+	  for( s = 0; s < schedules.length; s++ ) {
+		  schedule = schedules[ s ];
+		  scheduleText = schedulesName[ s ];
+		  //console.log ( schedule,schedules[s]);
+		  $('#schedule-select').append( $('<option>', {
+			value: schedule,
+			text: scheduleText
+		  }));
+
+		  for( i = 0; i < days.length; i++ ) {
+			var day = days[ i ].toLowerCase();
+			
+			var canvas = $('<canvas>').attr({
+							id: schedule + "-" + day,
+							width: 600,
+							height: 120
+						 }).appendTo( "#" + schedule )[ 0 ];
+
+			$('<br>').appendTo( "#" + schedule );
+            
+			var ss = new ScheduleSlider( schedule, days[ i ], canvas, "pointer-noice", "pointer-eco", "pointer-normal","pointer-comfort",scheduleSliders, oggi[i],tempval);
+			
+			scheduleSliders.push( ss );
+		
+			var entries = data[ schedule ][ day ]
+			var lastL = [];
+			for( j = 0; j < entries.length; j++ ) {
+			    lastL.push([]);
+                var parts = entries[j][0].split( ":" );
+                var hh    = parseInt( parts[ 0 ] );
+                var mm    = parseInt( parts[ 1 ] );
+                var incr  = ( hh * 60 + mm )
+                lastL[j][0] = entries[j][0];
+                lastL[j][1] = entries[j][1];
+                lastL[j][2] = incr;
+            }
+            lastL.sort(function(x,y){return x[2]-y[2]});
+			for( j = 0; j < entries.length; j++ ) {
+				var entry = lastL[ j ];
+				//console.log(entry,ss);
+				ss.addScheduleEntry( new ScheduleEntry( entry[ 0 ], entry[ 1 ], ss ) ); 
+				}
+		  }
+	  }
+	});
+
+	$('#schedule-select').on( 'change', function() {
+  	   for( s = 0; s < schedules.length; s++ ) {
+		  schedule = schedules[ s ];
+		  $( "#" + schedule ).hide();
+       }
+	   $( "#" + $('#schedule-select').find( ":selected" ).val() ).show();
+	   scheduleSliders[ 1 ].setSelected( null );  // Remove all selections when schedule changes
+	});
+
+	$( "#slider-horizontal" ).slider({
+	  
+	  orientation: "horizontal",
+	  range: "min",
+	  min: 0,
+	  max: 3,
+	  step: 1,
+	  value: 0,
+	  slide: function( event, ui ) {
+	    //console.log(ui.value,tempval[3]);
+	    
+		$( "#temp" ).val( tempval[ui.value].toFixed( 1 ) );
+		var entry = $( "#entryDetails" ).data( 'selectedScheduleEntry' );
+		if( entry ) {
+			entry.temp = ui.value;
+			entry.ss.valid = false;
+			entry.ss.draw();
+		}
+		//$("#slider-horizontal").slider('option',{min: tempval[0], max: tempval[2]+.5});
+	  }
+	});
+	
+	//$( "#temp" ).val( tempval[$( "#slider-horizontal" ).slider( "value" )].toFixed( 1 ) );
+    
+	saveSchedule = function() {
+		var sched_json = {};
+
+		for( s = 0; s < scheduleSliders.length; s++ ) {
+		  ss = scheduleSliders[ s ];
+		  if( typeof sched_json[ ss.schedule ] === 'undefined' ) {
+			  sched_json[ ss.schedule ] = {};
+	      }
+		  sched_json[ ss.schedule ][ ss.day.toLowerCase() ] = [];
+		  for( i = 0; i < ss.entries.length; i++ ) {
+		  	sched_json[ ss.schedule ][ ss.day.toLowerCase() ].push( [ ss.entries[ i ].hhmm, ss.entries[ i ].temp ] );
+		  }
+	    }
+		 
+		$.ajax( "save", {
+			data: JSON.stringify( sched_json, null, 4  ),
+			contentType: 'application/json',
+			async: false,
+			type : 'POST', 
+			success: function( html ) {
+				window.location = "/";//window.document.write( html );
+			}		
+		});
+
+	};
+
+	deleteSelected = function() {
+		var entry = $( "#entryDetails" ).data( 'selectedScheduleEntry' );
+		if( entry ) {
+			entry.ss.deleteSelected();
+			entry.ss.valid = false;
+			entry.ss.draw();
+		}
+	};
+	closeSelected = function() {
+		var entry = $( "#entryDetails" ).data( 'selectedScheduleEntry' );
+		if( entry ) {
+		    console.log("Chiudo Box ",entry);
+			entry.ss.closeSelected();
+			entry.ss.valid = false;
+			entry.ss.draw();
+		}
+	};
+
+  });
+  </script>
+  <style>
+	html, body {
+	  margin: 0;
+	  height: 100%;
+	  width: 100%;
+	  min-height: 100%;
+	  min-width: 100%;
+	}
+
+	.pointer {
+		display: none;
+	}
+
+	#entryDetails {
+		display: none;
+		background-color:rgba(128, 128, 128, 1);
+		border: thick double #32a1ce;
+	}
+
+	canvas {
+		border: 1px solid #CCBBDD;
+	}
+
+	
+
+    @media screen and (-webkit-min-device-pixel-ratio: 0) {
+		select:focus, textarea:focus, input:focus {
+				font-size: 16px;
+			}
+	}
+  </style>
+</head>
+<body bgcolor = "#d0d0f0">
+	<div align="center">
+		<img id="pointer-noice" class="pointer" src="img/1.png">
+		<img id="pointer-eco" class="pointer" src="img/2.png">
+		<img id="pointer-normal" class = "pointer" src="img/3.png">
+		<img id="pointer-comfort" class = "pointer" src="img/4.png">
+
+		<table width="600px">
+			<tr>
+			<td width="20%" align="center"><img src="img/favicon.png" width="40px" height="40px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td width="60%" align="center"><b>Thermostat32 Schedule</b>
+			<td width="25%" align="right"></td>
+			</tr>
+		</table>
+	   
+	   	<div id="heat"></div>
+
+	   	<div id="entryDetails" style="width:600px">
+			<br>
+			<b><font color="red">Cambia Temperatura Selezionata:</font></b>
+		   	<br><br>
+		   	<table width="600px">
+		   	<tr>
+		   	    <td width=15% align=center>
+		   	        <p id ="temp-0" style="color:#0000ff;font-size:24px;font-weight: bold;">10</p>
+		   	    </td>
+		   	    <td width=35% align=center>
+		   	        <p id ="temp-1" style="margin-left:30px; color:#ffff00;font-size:24px;font-weight: bold;">10</p>
+		   	    </td>
+		   	    <td width=35% align=center >
+		   	        <p id ="temp-2"style="margin-right:35px; color:#00ff00;font-size:24px;font-weight: bold;">10</p>
+		   	    </td>
+		   	    <td width=15% align=center>
+		   	        <p id ="temp-3" style="color:#ff0000;font-size:24px;font-weight: bold;">10</p>
+		   	    </td>
+		   	</tr></b>
+		   	</table>
+		   	<div id="slider-horizontal" style="height:10px; width:500px"></div>
+		   	<br>
+		   	<div align="center">
+				Time: <input type="text" id="time" name="time" readonly style="border:0; color:#ff0000; font-weight:bold; width: 3em;" size="5">&nbsp;
+				Temp: <input type="text" id="temp" name="temp" readonly style="text-align:center;border:0; color:#ff0000; font-weight:bold; width: 3em;" size="4">
+		</div>
+		   <br>	
+		<div align="center">
+			<input type="submit" value="Cancella Punto Selezionato" onclick="deleteSelected();" />&nbsp;&nbsp;
+			<input type="submit" value="Chiudi Box" onclick="closeSelected();" />
+		</div>
+		   <br>	
+	</div>
+		<p align="center"  style="width:600px;">
+		   <input type="submit" value="Home" onclick="window.location = '/';" />
+		   <input type="submit" value="Salva Programma" onclick="saveSchedule();" />
+		</p>
+    </div>
+</body>
+
+</html>

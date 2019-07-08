@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang = "en">
+   <head>
+      <meta charset = "utf-8">
+      <title>Thermostat32 Temperature Set</title>
+      <link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css"
+         rel = "stylesheet">
+      <script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
+      <script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+      
+      <!-- Javascript -->
+      <script>
+         $(function() {
+            var tempval =[];
+	        $.ajaxSetup( { cache: false } );
+
+	        $.getJSON( "stato.json", function( data ) {
+	        var temptemp = data["temp"];
+            for( j = 0; j < temptemp.length; j++ ) {
+			    tempval[j] = parseFloat(temptemp[j]);
+			    var testo = "#temp-"+String(j+1);
+			    var testo1= "#slider-"+String(j+1);
+			    $(testo).val(temptemp[j]+" °c");
+			    $(testo1).slider("value", tempval[j]);
+			    console.log( tempval[j]);
+			    }
+		    });
+            $( "#slider-1" ).slider({
+                min:15,
+                max:25,
+                value:17,
+                step:0.1,
+                animate:"slow",
+                orientation: "horizontal",
+                slide: function( event, ui ) {
+                  $( "#temp-1" ).val( ui.value+" °c");
+               }
+            });
+            $( "#slider-2" ).slider({
+                min:15,
+                max:25,
+                value: 18,
+                step:0.1,
+                animate:"slow",
+                orientation: "horizontal",
+                slide: function( event, ui ) {
+                  $( "#temp-2" ).val( ui.value+" °c");
+               }
+            });
+            $( "#slider-3" ).slider({
+                min:15,
+                max:25,
+                value: 19,
+                step:0.1,
+                animate:"slow",
+                orientation: "horizontal",
+                slide: function( event, ui ) {
+                  $( "#temp-3" ).val( ui.value+" °c");
+               }
+            });
+            $( "#slider-4" ).slider({
+                min:15,
+                max:25,
+                value: 20,
+                step:0.1,
+                animate:"slow",
+                orientation: "horizontal",
+                slide: function( event, ui ) {
+                  $( "#temp-4" ).val( ui.value+" °c");
+               }
+            });
+         });
+         
+         function saveTemp(){
+            send = "/setTemp?";
+            send +=$("#slider-1").slider("value")+",";
+            send +=$("#slider-2").slider("value")+",";
+            send +=$("#slider-3").slider("value")+",";
+            send +=$("#slider-4").slider("value")+",";
+            console.log(send);
+            window.location.href = send;
+            
+        }
+         
+         
+      </script>
+      <style>
+      #intesta {
+        
+        width: 500px;
+        margin: 0 auto;
+        text-align: center;
+        
+      }
+      #coda{
+        
+        width: 500px;
+        margin: 0 auto;
+        text-align: center;
+        
+      }
+      #setta {
+        color:red;
+        width: 500px;
+        margin: 0 auto;
+        text-align: center;
+        
+      }
+      div.slider {
+        width:300px;
+        margin:0 auto;
+    }
+    p.input {
+        width:250px;
+        margin:0 auto;
+        text-align:right;
+        font-size:18px;
+        font-weight:bold;
+    }
+    input.input {
+        width:100px;
+        text-align:center;
+        font-size:18px;
+        font-weight:bold;
+        
+    }
+    table.conte {
+        width:500px;
+        margin:0 auto;
+        border-spacing:7px;
+    }
+    #input{
+        width: 500px;
+        margin: 0 auto;
+        text-align: center;
+        border:2px solid blue;
+        border-radius:10px;
+    }
+    </style>
+   </head>
+   
+   <body style="background-color:#d0d0f0">
+      <div id="intesta">
+        <p id="setta" style="font-size:24px;font-weight: bold;"> Temperature Setting</p>
+      </div><br>
+      <div id = "input">
+        <table id = "conte" class = "conte" >
+            <tr>
+                <td style="width:50%;margin:0 auto;">
+                    <p class = "input"> Temperatura Noice</p>
+                </td>
+                <td width = "50%">
+                    <input class = "input" readonly type = "text" id = "temp-1" style="background-color:#0000ff;font-size:24px;font-weight: bold;">
+            </tr>
+            <tr> 
+                <td colspan= "2">   
+                    <div class = "slider" id = "slider-1"></div>
+                </td>
+            <tr>
+        </table>
+      </div>
+       <div id = "input">
+        <table id = "conte" class = "conte" >
+            <tr>
+                <td style="width:50%;margin:0 auto;">
+                    <p class = "input"> Temperatura Eco</p>
+                </td>
+                <td width = "50%">
+                    <input class = "input" readonly type = "text" id = "temp-2" style="background-color:#ffff00;font-size:24px;font-weight: bold;">
+            </tr>
+            <tr> 
+                <td colspan= "2">   
+                    <div class = "slider" id = "slider-2"></div>
+                </td>
+            <tr>
+        </table>
+      </div>
+      <div id = "input">
+        <table id = "conte" class = "conte" >
+            <tr>
+                <td style="width:50%;margin:0 auto;">
+                    <p class = "input"> Temperatura Normal</p>
+                </td>
+                <td width = "50%">
+                    <input class = "input" readonly type = "text" id = "temp-3" style="background-color:#00ff00;font-size:24px;font-weight: bold;">
+            </tr>
+            <tr> 
+                <td colspan= "2">   
+                    <div class = "slider" id = "slider-3"></div>
+                </td>
+            <tr>
+        </table>
+      </div>
+      <div id = "input">
+        <table id = "conte" class = "conte" >
+            <tr>
+                <td style="width:50%;margin:0 auto;">
+                    <p class = "input"> Temperatura Comfort</p>
+                </td>
+                <td width = "50%">
+                    <input class = "input" readonly type = "text" id = "temp-4" style="background-color:#ff0000;font-size:24px;font-weight: bold;">
+            </tr>
+            <tr> 
+                <td colspan= "2">   
+                    <div class = "slider" id = "slider-4"></div>
+                </td>
+            <tr>
+        </table>
+      </div><br>
+      <div id="coda">
+		<p style="margin:0 auto;">
+		   <input type="submit" value="Home" onclick="window.location = '/';" />
+		   <input type="submit" value="Salva Temperature" onclick="saveTemp();" />
+		</p>
+    </div>
+   </body>
+</html>
